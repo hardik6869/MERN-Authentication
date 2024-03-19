@@ -1,5 +1,6 @@
 const User = require("../model/User");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const signup = async (req, res, next) => {
   const { name, email, password } = req.body;
@@ -24,7 +25,7 @@ const signup = async (req, res, next) => {
     console.log(error);
   }
 
-  return res.status(200).json({ message: user });
+  return res.status(201).json({ message: user });
 };
 
 const login = async (req, res, next) => {
@@ -44,8 +45,45 @@ const login = async (req, res, next) => {
   if (!isPasswordCorrect) {
     return res.status(400).json({ message: "Invalid Email / Password" });
   }
-  return res.status(200).json({ message: "SuccessFully LoggedIn" });
+  const token = jwt.sign({ id: existingUser._id }, process.env.JWT_SECRET_KEY, {
+    expiresIn: "1hr",
+  });
+  return res
+    .status(200)
+    .json({ message: "SuccessFully LoggedIn", user: existingUser, token });
+};
+
+const verifyToken = async (req, res, next) => {
+  const headers = req.headers["authorization"];
+  const token = headers.split(" ")[1];
+  if (!token) {
+    res.status(404).json({ message: "No token found" });
+  }
+  jwt.verify(String(token), process.env.JWT_SECRET_KEY, (error, user) => {
+    if (error) {
+      return res.json(400).json({ message: "Invalid Token" });
+    }
+    console.log(user.id);
+    req.id = user.id;
+  });
+  next();
+};
+
+const getUser = async (req, res, next) => {
+  const userId = req.id;
+  let user;
+  try {
+    user = await User.findById(userId, "-password");
+  } catch (error) {
+    return new Error(error);
+  }
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+  res.status(200).json({ user });
 };
 
 exports.signup = signup;
 exports.login = login;
+exports.verifyToken = verifyToken;
+exports.getUser = getUser;
