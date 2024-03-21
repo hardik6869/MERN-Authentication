@@ -37,28 +37,37 @@ const login = async (req, res, next) => {
   } catch (error) {
     return new Error(error);
   }
-
   if (!existingUser) {
     return res.status(400).json({ message: "User not found. Signup Please!" });
   }
+
   const isPasswordCorrect = bcrypt.compareSync(password, existingUser.password);
   if (!isPasswordCorrect) {
     return res.status(400).json({ message: "Invalid Email / Password" });
   }
+
   const token = jwt.sign({ id: existingUser._id }, process.env.JWT_SECRET_KEY, {
-    expiresIn: "1hr",
+    expiresIn: "30s",
   });
+  res.cookie(String(existingUser._id), token, {
+    path: "/",
+    expires: new Date(Date.now() + 1000 * 30),
+    httpOnly: true,
+    sameSite: "lax",
+  });
+
   return res
     .status(200)
     .json({ message: "SuccessFully LoggedIn", user: existingUser, token });
 };
 
 const verifyToken = async (req, res, next) => {
-  const headers = req.headers["authorization"];
-  const token = headers.split(" ")[1];
+  const cookies = req.headers.cookie;
+  const token = cookies.split("=")[1];
   if (!token) {
     res.status(404).json({ message: "No token found" });
   }
+
   jwt.verify(String(token), process.env.JWT_SECRET_KEY, (error, user) => {
     if (error) {
       return res.json(400).json({ message: "Invalid Token" });
@@ -66,6 +75,7 @@ const verifyToken = async (req, res, next) => {
     console.log(user.id);
     req.id = user.id;
   });
+
   next();
 };
 
@@ -77,6 +87,7 @@ const getUser = async (req, res, next) => {
   } catch (error) {
     return new Error(error);
   }
+
   if (!user) {
     return res.status(404).json({ message: "User not found" });
   }
