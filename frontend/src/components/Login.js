@@ -19,12 +19,10 @@ function Login() {
   };
 
   const sendRequest = async () => {
-    console.log(inputs);
     const res = await axios
       .post(setupLoginUser, inputs)
       .catch((err) => console.log(err));
     const data = await res.data;
-    console.log(data);
     return data;
   };
 
