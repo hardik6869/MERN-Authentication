@@ -1,10 +1,13 @@
 import React, { useState } from "react";
 import { Box, TextField, Button, Typography } from "@mui/material";
+import { useDispatch } from "react-redux";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { setupLoginUser } from "../utils/apiPaths";
+import { authActions } from "../store";
 
 function Login() {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const [inputs, setInputs] = useState({
     email: "",
@@ -29,7 +32,9 @@ function Login() {
   const handleSubmit = (e) => {
     e.preventDefault();
     // send http request
-    sendRequest().then(() => navigate("/user"));
+    sendRequest()
+      .then(() => dispatch(authActions.login()))
+      .then(() => navigate("/user"));
   };
   return (
     <form onSubmit={handleSubmit}>
